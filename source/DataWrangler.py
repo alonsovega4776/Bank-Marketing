@@ -437,11 +437,6 @@ class DataWrangler:
         print("Dropping input: ", input_name)
         print(self._feature_df[input_name].value_counts())
 
-        # Correlation
-        
-
-
-
         self._feature_df.drop(labels=input_name, axis=1, inplace=True)
         print("New feature matrix: ")
         print(self._feature_df.head(5))
@@ -658,6 +653,34 @@ class DataWrangler:
         print("New column for ", input_name, " :")
         print(self._feature_df[input_name])
         print("\n----------Scaling----------")
+        return None
+
+    def current_data(self, size=4):
+        list_df = [self._feature_df, self._output_df, self._dura_df, self._current_model_per_df]
+        current_data = pd.concat(list_df[0:size], axis=1)
+        return current_data
+
+    def heat_map(self, otro=["age", "education", "y"]):
+        current_data = self.current_data(2)
+
+        for x_i in otro:
+            if x_i not in current_data:
+                print("ERROR: Feature: ", x_i, " not in col of ", current_data.columns)
+                return None
+            if current_data[x_i].dtype == 'O':
+                print("ERROR: ", x_i, " is object type.")
+                return None
+
+        other_df     = current_data[otro]
+        corr         = other_df.corr(method="pearson")
+
+        ax = plt.subplot()
+        sns.heatmap(data=corr, ax=ax, annot=True, center=0,
+                    xticklabels=other_df.columns, yticklabels=other_df.columns)
+        plt.xticks(rotation=45)
+        sns.pairplot(data=other_df, hue="y")
+
+        plt.show()
         return None
 
     def get_clean_data(self):

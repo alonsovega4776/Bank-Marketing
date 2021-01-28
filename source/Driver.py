@@ -60,10 +60,12 @@ for feat in df_missing_1.columns:
 
 # Delete priorCampDays
 # its redundent
+bankingData.numerical_encoding("priorCampOutcome", ["nonexistent", "failure", "success"])  # only do this to get heatmap
+bankingData.heat_map(otro=["priorCampDays", "priorCampOutcome", "priorCampContacts"])
 bankingData.intuitive_featSel("priorCampDays")
 
 # Outliers
-bankingData.remove_OL("age", plot=True, DELETE=True)
+bankingData.remove_OL("age", plot=False, DELETE=True)
 
 # Getting rid of object types in our Data
 # integer
@@ -74,6 +76,7 @@ bankingData.numerical_encoding("education", unq_values_ordered=replace_list_orde
 # binary
 bankingData.numerical_encoding("marital", method="binary")
 bankingData.numerical_encoding("commType", method="binary")
+
 
 # hot vectors
 bankingData.numerical_encoding("job", method="k dum")
@@ -87,6 +90,10 @@ bankingData.scale("employees", method="minmax")
 bankingData.scale("age", method="minmax")
 bankingData.scale("consConfidenceIdx", method="minmax", minmax_range=(-1, 1))
 bankingData.scale("education", "minmax")
+
+bankingData.scale("priorDay", "minmax")
+bankingData.scale("priorMonth", "minmax")
+bankingData.scale("currentCampContacts", "minmax")
 
 # Get clean Data
 X_mat, y_vect = bankingData.get_clean_data()
