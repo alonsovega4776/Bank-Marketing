@@ -74,6 +74,12 @@ class DataWrangler:
         print("\nRandom Sample: ")
         print(self._feature_df.sample(20))
 
+    def get_features(self):
+        return self._feature_df
+
+    def get_output(self):
+        return self._output_df
+
     def unique_observation(self, input_name, plot=False):
         num_bins = 10
 
@@ -678,10 +684,15 @@ class DataWrangler:
         sns.heatmap(data=corr, ax=ax, annot=True, center=0,
                     xticklabels=other_df.columns, yticklabels=other_df.columns)
         plt.xticks(rotation=45)
-        sns.pairplot(data=other_df, hue="y")
+        #sns.pairplot(data=other_df, hue="y")
 
         plt.show()
         return None
 
     def get_clean_data(self):
         return self._feature_df, self._output_df
+
+    def make_csv(self):
+        self._feature_df.to_csv(path_or_buf="X_matrix.csv", index=False)
+        self._output_df.to_csv(path_or_buf="y_vect.csv", index=False)
+        return None

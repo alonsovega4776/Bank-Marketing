@@ -61,7 +61,7 @@ for feat in df_missing_1.columns:
 # Delete priorCampDays
 # its redundent
 bankingData.numerical_encoding("priorCampOutcome", ["nonexistent", "failure", "success"])  # only do this to get heatmap
-bankingData.heat_map(otro=["priorCampDays", "priorCampOutcome", "priorCampContacts"])
+#bankingData.heat_map(otro=["priorCampDays", "priorCampOutcome", "priorCampContacts"])
 bankingData.intuitive_featSel("priorCampDays")
 
 # Outliers
@@ -77,24 +77,34 @@ bankingData.numerical_encoding("education", unq_values_ordered=replace_list_orde
 bankingData.numerical_encoding("marital", method="binary")
 bankingData.numerical_encoding("commType", method="binary")
 
+replace_list_ordered = list(bankingData.get_features()["job"].unique())
+bankingData.numerical_encoding("job", unq_values_ordered=replace_list_ordered)
 
+
+'''
 # hot vectors
 bankingData.numerical_encoding("job", method="k dum")
 bankingData.numerical_encoding("priorCampOutcome", method="k-1 dum")
+'''
 
 # Fix Scaling
 bankingData.scale("consPriceIdx", method="minmax")
 bankingData.scale("empVariation", method="std")
 bankingData.scale("euribor3Mon", method="minmax")
 bankingData.scale("employees", method="minmax")
-bankingData.scale("age", method="minmax")
 bankingData.scale("consConfidenceIdx", method="minmax", minmax_range=(-1, 1))
-bankingData.scale("education", "minmax")
 
+'''
+bankingData.scale("age", method="minmax")
+bankingData.scale("education", "minmax")
 bankingData.scale("priorDay", "minmax")
 bankingData.scale("priorMonth", "minmax")
 bankingData.scale("currentCampContacts", "minmax")
+'''
 
 # Get clean Data
 X_mat, y_vect = bankingData.get_clean_data()
 print(X_mat.head(5))
+
+# make csv of Data
+bankingData.make_csv()
