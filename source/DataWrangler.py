@@ -11,12 +11,13 @@ import matplotlib as mpl
 import autoimpute
 import numpy as np
 import calendar
-import sklearn.preprocessing as skl_pre
-
+from scipy import stats
+from sklearn import preprocessing as prep
 
 pd.set_option('display.width', 500)
-pd.set_option('display.max_columns', 22)
+pd.set_option('display.max_columns', 30)
 sns.set_theme()
+
 
 class DataWrangler:
     __slots__ = '_feature_df', '_output_df',\
@@ -74,7 +75,7 @@ class DataWrangler:
     def unique_observation(self, input_name, plot=False):
         num_bins = 10
 
-        if input_name not in self._feature_df:
+        if input_name not in self._feature_df.columns:
             print("Feature: ", input_name, " not in Feature Space.")
             return None
 
@@ -85,6 +86,8 @@ class DataWrangler:
                                      bins=num_bins, stat="count")
             plt.grid(True)
             plt.show()
+        else:
+            plt.close()
 
         return unq_values
 
@@ -273,6 +276,8 @@ class DataWrangler:
         plt.legend()
         if plot == True:
             plt.show()
+        else:
+            plt.close()
 
         # Plot number of contacts and number of success
         fig, ax = plt.subplots(2, 1)
@@ -295,6 +300,8 @@ class DataWrangler:
 
         if plot == True:
             plt.show()
+        else:
+            plt.close()
 
         print("----------------Previous Campaign Info----------------")
 
@@ -386,6 +393,8 @@ class DataWrangler:
         plt.suptitle("Consider ONLY when {} is missing.".format(input_name))
         if plot:
             plt.show()
+        else:
+            plt.close()
 
         print("----------------Missing Data Info----------------")
         return missing_df
@@ -433,19 +442,6 @@ class DataWrangler:
         print("-------Deleting ENTIRE Feature----------")
         return None
 
-    def scale(self):
-        return None
-
-    def numerical_encoding(self):
-        # jobs - 1 hot
-        # marital - 1 hot
-        # education - int. label
-        # commType - binary
-        #       1 == "cellular"    0 == "telephone"
-        # priorCampOutcome -
-        # priorDay - cyclical
-        # priorMonth - cyclical
-
     def merge_feature_values(self, input_name, value_list, replacement):
         # Merge values
         print("\n----------Merging----------")
@@ -466,3 +462,192 @@ class DataWrangler:
 
         print("----------Merging----------")
         return None
+
+    def remove_OL(self, input_name, plot=False, DELETE=False):
+        print("\n----------Outlier Stats----------")
+
+        if input_name not in self._feature_df.columns:
+            print(input_name, " not in feature matrix.")
+            print("\n----------Outlier Stats----------")
+            return None
+
+        fig, ax = plt.subplots(4, 1)
+        n_sample = 50
+        sns.stripplot(ax=ax[0], x=self._feature_df[input_name].sample(n_sample), jitter=True,
+                      marker='o', alpha=0.5, color="red")
+        ax[0].vlines(ymin=ax[0].get_ylim()[0], ymax=ax[0].get_ylim()[1], x=self._feature_df[input_name].mean(), color="red")
+        ax[0].legend(["{} Random Samples".format(n_sample), "avg. of entire feature"])
+        sns.boxplot(ax=ax[0], x=self._feature_df[input_name], whis=1.5)   # Tukey box plot
+
+        sns.scatterplot(ax=ax[1], x=self._feature_df[input_name], y=self._dura_df, hue=self._output_df, style=self._output_df)
+
+        # Z-Value Test
+        threshold = 3.2
+        z_scores = stats.zscore(a=self._feature_df[input_name], ddof=0)
+        z_scores = np.abs(z_scores)
+        z_scores = pd.Series(data=z_scores, index=self._feature_df[input_name].index)
+
+        current_data = pd.concat([self._feature_df, self._output_df, self._dura_df, self._current_model_per_df], axis=1)
+        print("\n-->Instances with z-score less than ", threshold, " sample:")
+        indices = z_scores.loc[z_scores > threshold].index
+        rnd_ind = np.random.choice(indices, int(np.floor(0.15*len(indices))))
+        rnd_ind = list(rnd_ind)
+        rnd_ind.sort()
+        print("-->Random Sample of Outliers: ")
+        outliers_df = current_data.loc[indices, :]
+        print(outliers_df.loc[rnd_ind, :])
+
+        outliers_PT = pd.pivot_table(data=outliers_df, values='duration', index=input_name, aggfunc=[np.mean, np.std])
+        outliers_PT.sort_values(outliers_PT.columns[0], ascending=False, inplace=True)
+        print("\n-->Pivot Table")
+        print(outliers_PT)
+        sns.lineplot(data=outliers_PT, ax=ax[1], palette=sns.color_palette("rocket", 2))
+        sns.lineplot(data=outliers_PT, ax=ax[2], palette=sns.color_palette("rocket", 2))
+        ax[2].set_ylabel("duration [s]")
+
+        print("-->Outlier Count: ")
+        print(outliers_df[input_name].value_counts())
+
+        print("\n-->Pivot Table")
+        outliers_PT = pd.pivot_table(data=outliers_df, values="ModelPrediction", index=input_name,
+                                     aggfunc=[np.mean, np.std, np.max, np.min])
+        outliers_PT.sort_values(outliers_PT.columns[0], ascending=False, inplace=True)
+        print(outliers_PT)
+        sns.lineplot(data=outliers_PT, ax=ax[3], palette=sns.color_palette("light:b", 4))
+        ax[3].set_ylabel("Probability of Subscription [pph]")
+
+        if plot:
+            plt.show()
+        else:
+            plt.close()
+
+        if DELETE:
+            self.del_examples(indices)
+
+        print("----------Outlier Stats----------")
+        return None
+
+    def numerical_encoding(self, input_name, unq_values_ordered=[], method="integer label"):
+        print("\n----------Encoding----------")
+        # jobs - 1 hot
+        # marital - 1 hot
+        # education - int. label
+        # commType - binary
+        #       1 == "cellular"    0 == "telephone"
+        # priorCampOutcome -
+        # priorDay - cyclical
+        # priorMonth - cyclical
+        if input_name not in self._feature_df.columns:
+            print("ERROR: Feature: ", input_name, " not in Feature Space.")
+            print("----------Encoding----------")
+            return None
+
+        if self._feature_df[input_name].dtype != 'O':
+            print("ERROR: Feature is not Object Type.")
+            print("----------Encoding----------")
+            return None
+
+        # Encoding
+        if method == "integer label":
+            if len(unq_values_ordered) == 0:
+                print("ERROR: unq_values_ordered is empty.")
+                print("----------Encoding----------")
+                return None
+            unq_values = self._feature_df[input_name].unique()
+
+            if len(unq_values) != len(unq_values_ordered):
+                print("ERROR: Improper Size")
+                print("----------Encoding----------")
+                return None
+
+            for val in unq_values_ordered:
+                if val not in unq_values:
+                    print("ERROR: ", val, " not in ", input_name, " colunm.")
+                    print("----------Encoding----------")
+                    return None
+
+            size        = len(unq_values)
+            new_values  = np.arange(1, size + 1, 1)
+            replace_dic = {unq_values_ordered[i]: new_values[i] for i in range(len(unq_values))}
+
+            print("\n-->Replacing Values of ", input_name, " using: ")
+            print(replace_dic)
+            self._feature_df[input_name].replace(to_replace=replace_dic, inplace=True)
+
+            print("\n-->Random Sample of new Feature Matrix: ")
+            print(self._feature_df.sample(20))
+
+        elif method == "binary":
+            unq_values = self._feature_df[input_name].unique()
+            if len(unq_values) != 2:
+                print("ERROR: Improper Size: Not binary.")
+                print("----------Encoding----------")
+                return None
+
+            new_values = np.arange(0, 2, 1)
+            replace_dic = {unq_values[i]: new_values[i] for i in range(len(unq_values))}
+
+            print("\n-->Replacing Values of ", input_name, " using: ")
+            print(replace_dic)
+            self._feature_df[input_name].replace(to_replace=replace_dic, inplace=True)
+
+            print("\n-->Random Sample of new Feature Matrix: ")
+            print(self._feature_df.sample(20))
+
+        elif method == "k-1 dum":
+            dum_df = pd.get_dummies(data=self._feature_df[input_name], drop_first=True,
+                                    prefix=input_name, prefix_sep="_")
+
+            self.intuitive_featSel(input_name)
+            self._feature_df = pd.concat([self._feature_df, dum_df], axis=1)
+
+            print("\n-->Random Sample of new Feature Matrix: ")
+            print(self._feature_df.sample(20))
+
+        elif method == "k dum":
+            dum_df = pd.get_dummies(data=self._feature_df[input_name], drop_first=False,
+                                    prefix=input_name, prefix_sep="_")
+
+            self.intuitive_featSel(input_name)
+            self._feature_df = pd.concat([self._feature_df, dum_df], axis=1)
+
+            print("\n-->Random Sample of new Feature Matrix: ")
+            print(self._feature_df.sample(20))
+
+        else:
+            print("ERROR: Improper method.")
+
+        print("New Feature Space Dim: ", self._feature_df.shape[0], 'x', self._feature_df.shape[1])
+        print("----------Encoding----------")
+        return None
+
+    def scale(self, input_name, method="minmax", minmax_range=(0, 1)):
+        print("\n----------Scaling----------")
+        if input_name not in self._feature_df.columns:
+            print("Feature: ", input_name, " not in Feature Space.")
+            print("\n----------Scaling----------")
+            return None
+
+        # Scale
+        if method == "minmax":
+            scaler = prep.MinMaxScaler(feature_range=minmax_range, copy=True)
+        elif method == "std":
+            scaler = prep.StandardScaler(copy=True)
+        else:
+            print("ERROR: Improper method.")
+            print("\n----------Scaling----------")
+            return None
+
+        x_i = self._feature_df[input_name].to_numpy().reshape((-1, 1)).copy()
+        scaler.fit(x_i)
+        x_i_scaled = scaler.transform(x_i)
+
+        self._feature_df[input_name] = x_i_scaled
+
+        print("New column for ", input_name, " :")
+        print(self._feature_df[input_name])
+        print("\n----------Scaling----------")
+        return None
+
+    def get_clean_data(self):
+        return self._feature_df, self._output_df
