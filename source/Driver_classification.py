@@ -6,4 +6,4 @@ Driver: From here we will test our classifier.
 import ClassiferModel
 
 model = ClassiferModel.ClassifierModel()
-
+model.train_NB()
