@@ -15,8 +15,8 @@ bankingData.prior_campaign(plot=False)
 
 # Missing Data
 # Loan data
-df_missing_1 = bankingData.missing_data_info("personalLoan")
-df_missing_2 = bankingData.missing_data_info("houseLoan")
+df_missing_1 = bankingData.missing_data_info("personalLoan", False)
+df_missing_2 = bankingData.missing_data_info("houseLoan", False)
 bankingData.del_examples(df_missing_2.index)
 df_missing_2 = bankingData.missing_data_info("personalLoan", plot=False)
 
@@ -24,6 +24,8 @@ df_missing_2 = bankingData.missing_data_info("personalLoan", plot=False)
 bankingData.missing_data_info(input_name="default", plot=False)
 # job missing data
 bankingData.missing_data_info(input_name="job", plot=False)
+#eduaction
+bankingData.missing_data_info(input_name="education", plot=False)
 
 merging = ["unknown", "illiterate"]
 bankingData.merge_feature_values(input_name="education", value_list=merging, replacement="less.4y" )
@@ -35,7 +37,7 @@ bankingData.missing_data_info(input_name="job", plot=False)
 # merging unemployed and unknown
 merging[1] = "unemployed"
 bankingData.merge_feature_values(input_name="job", value_list=merging, replacement="unemployed")
-bankingData.missing_data_info(input_name="job", plot=False)
+bankingData.missing_data_info(input_name="job", plot=True)
 
 # marital missing data
 bankingData.missing_data_info(input_name="marital", plot=False)
@@ -61,7 +63,7 @@ for feat in df_missing_1.columns:
 bankingData.intuitive_featSel("priorCampDays")
 
 # Outliers
-bankingData.remove_OL("age", plot=False, DELETE=True)
+bankingData.remove_OL("age", plot=True, DELETE=True)
 
 # Getting rid of object types in our Data
 # integer
@@ -85,7 +87,6 @@ bankingData.scale("employees", method="minmax")
 bankingData.scale("age", method="minmax")
 bankingData.scale("consConfidenceIdx", method="minmax", minmax_range=(-1, 1))
 bankingData.scale("education", "minmax")
-
 
 # Get clean Data
 X_mat, y_vect = bankingData.get_clean_data()

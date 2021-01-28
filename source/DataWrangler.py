@@ -8,7 +8,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import autoimpute
+#import autoimpute
 import numpy as np
 import calendar
 from scipy import stats
@@ -71,6 +71,8 @@ class DataWrangler:
         self.deep_cleaning()
 
         print(self._feature_df.dtypes)
+        print("\nRandom Sample: ")
+        print(self._feature_df.sample(20))
 
     def unique_observation(self, input_name, plot=False):
         num_bins = 10
@@ -435,6 +437,11 @@ class DataWrangler:
         print("Dropping input: ", input_name)
         print(self._feature_df[input_name].value_counts())
 
+        # Correlation
+        
+
+
+
         self._feature_df.drop(labels=input_name, axis=1, inplace=True)
         print("New feature matrix: ")
         print(self._feature_df.head(5))
@@ -490,38 +497,42 @@ class DataWrangler:
         current_data = pd.concat([self._feature_df, self._output_df, self._dura_df, self._current_model_per_df], axis=1)
         print("\n-->Instances with z-score less than ", threshold, " sample:")
         indices = z_scores.loc[z_scores > threshold].index
-        rnd_ind = np.random.choice(indices, int(np.floor(0.15*len(indices))))
-        rnd_ind = list(rnd_ind)
-        rnd_ind.sort()
-        print("-->Random Sample of Outliers: ")
-        outliers_df = current_data.loc[indices, :]
-        print(outliers_df.loc[rnd_ind, :])
 
-        outliers_PT = pd.pivot_table(data=outliers_df, values='duration', index=input_name, aggfunc=[np.mean, np.std])
-        outliers_PT.sort_values(outliers_PT.columns[0], ascending=False, inplace=True)
-        print("\n-->Pivot Table")
-        print(outliers_PT)
-        sns.lineplot(data=outliers_PT, ax=ax[1], palette=sns.color_palette("rocket", 2))
-        sns.lineplot(data=outliers_PT, ax=ax[2], palette=sns.color_palette("rocket", 2))
-        ax[2].set_ylabel("duration [s]")
+        if len(indices) == 0:
+            print("NO OUTLIERS!!!")
+        else:
+            rnd_ind = np.random.choice(indices, int(np.floor(0.15*len(indices))))
+            rnd_ind = list(rnd_ind)
+            rnd_ind.sort()
+            print("-->Random Sample of Outliers: ")
+            outliers_df = current_data.loc[indices, :]
+            print(outliers_df.loc[rnd_ind, :])
 
-        print("-->Outlier Count: ")
-        print(outliers_df[input_name].value_counts())
+            outliers_PT = pd.pivot_table(data=outliers_df, values='duration', index=input_name, aggfunc=[np.mean, np.std])
+            outliers_PT.sort_values(outliers_PT.columns[0], ascending=False, inplace=True)
+            print("\n-->Pivot Table")
+            print(outliers_PT)
+            sns.lineplot(data=outliers_PT, ax=ax[1], palette=sns.color_palette("rocket", 2))
+            sns.lineplot(data=outliers_PT, ax=ax[2], palette=sns.color_palette("rocket", 2))
+            ax[2].set_ylabel("duration [s]")
 
-        print("\n-->Pivot Table")
-        outliers_PT = pd.pivot_table(data=outliers_df, values="ModelPrediction", index=input_name,
-                                     aggfunc=[np.mean, np.std, np.max, np.min])
-        outliers_PT.sort_values(outliers_PT.columns[0], ascending=False, inplace=True)
-        print(outliers_PT)
-        sns.lineplot(data=outliers_PT, ax=ax[3], palette=sns.color_palette("light:b", 4))
-        ax[3].set_ylabel("Probability of Subscription [pph]")
+            print("-->Outlier Count: ")
+            print(outliers_df[input_name].value_counts())
+
+            print("\n-->Pivot Table")
+            outliers_PT = pd.pivot_table(data=outliers_df, values="ModelPrediction", index=input_name,
+                                         aggfunc=[np.mean, np.std, np.max, np.min])
+            outliers_PT.sort_values(outliers_PT.columns[0], ascending=False, inplace=True)
+            print(outliers_PT)
+            sns.lineplot(data=outliers_PT, ax=ax[3], palette=sns.color_palette("tab10", 4))
+            ax[3].set_ylabel("Probability of Subscription [pph]")
 
         if plot:
             plt.show()
         else:
             plt.close()
 
-        if DELETE:
+        if DELETE & len(indices) != 0:
             self.del_examples(indices)
 
         print("----------Outlier Stats----------")
