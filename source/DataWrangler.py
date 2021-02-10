@@ -689,6 +689,22 @@ class DataWrangler:
         plt.show()
         return None
 
+    def discretize(self, input_name, bins=25):
+        if input_name not in self._feature_df.columns:
+            print("Feature: ", input_name, " not in Feature Space.")
+            print("\n------------Discretizing: ", input_name, "-------------------")
+            return None
+
+        print("\n------------Discretizing: ", input_name, "-------------------")
+        print("Sample before processing: ")
+        print(self._feature_df[input_name].sample(5))
+
+        self._feature_df[input_name] = pd.cut(self._feature_df["employees"], bins, labels=False)
+
+        print("Sample after processing: ")
+        print(self._feature_df[input_name].sample(5))
+        print("\n------------Discretizing: ", input_name, "-------------------")
+
     def get_clean_data(self):
         return self._feature_df, self._output_df
 

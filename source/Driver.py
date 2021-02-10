@@ -102,6 +102,14 @@ bankingData.scale("priorMonth", "minmax")
 bankingData.scale("currentCampContacts", "minmax")
 '''
 
+# Descritize
+bankingData.discretize("employees")
+bankingData.discretize("euribor3Mon")
+bankingData.discretize("consConfidenceIdx")
+bankingData.discretize("consPriceIdx")
+bankingData.discretize("empVariation")
+
+
 # Get clean Data
 X_mat, y_vect = bankingData.get_clean_data()
 print(X_mat.head(5))
